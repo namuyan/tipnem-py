@@ -1,6 +1,6 @@
 tipnem-py
 =========
-![ねむりん](img/nemurin.png)
+![ねむりん](nemurin.png)
 
 [Tipnem](https://namuyan.github.io/nem-tip-bot/index)を扱う為のライブラリ。  
 Python3で動きます。
