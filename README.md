@@ -5,6 +5,9 @@ tipnem-py
 [Tipnem](https://namuyan.github.io/nem-tip-bot/index)を扱う為のライブラリ。  
 Python3で動きます。
 
+[GOX TOOL](GOX_TOOL.md)  
+Tipnemちゃんに間違えてTagを付けずに送金してしまった場合のツール。
+
 Requirement
 ----------
 [websocket-client](https://github.com/websocket-client/websocket-client)
