@@ -15,7 +15,7 @@ Tipnemを扱うライブラリ
 2017/11/07
 """
 
-version = "2.1"
+version = "2.2"
 author = "namuyan"
 
 
@@ -25,8 +25,8 @@ class WebSocketClient:
     result_lock = threading.Lock()
     streaming_que = queue.LifoQueue(maxsize=1000)
     user_code = None
+    auto_login_setting = dict()
     level = 0
-    height = 0
 
     def __init__(self, url, test=False):
         self.url = url
@@ -45,12 +45,37 @@ class WebSocketClient:
                 ws.on_open = self.on_open
                 ws.on_error = self.on_error
                 ws.run_forever()
+                if len(self.auto_login_setting) == 3:
+                    logging.error("# disconnect! retry 60s after %s" % retry)
+                    time.sleep(60)
+                    threading.Thread(
+                        target=self.login_by_key, args=(None, None, None),
+                        name="login", daemon=True
+                    ).start()
+                else:
+                    logging.error("# disconnect!")
+                    return
+
             except Exception as e:
                 logging.error(e)
                 logging.error("# retry connect to tipnem after 180s, %s" % retry)
                 time.sleep(180)
 
-    def login_by_key(self, seckey, pubkey, screen):
+    def login_by_key(self, seckey, pubkey, screen, auto_login=False):
+        count = 0
+        while self.user_code is None and count < 100:
+            count += 1
+            time.sleep(0.2)
+        if len(self.auto_login_setting) == 3 and seckey is None:
+            seckey = self.auto_login_setting["seckey"]
+            pubkey = self.auto_login_setting["pubkey"]
+            screen = self.auto_login_setting["screen"]
+        elif auto_login:
+            self.auto_login_setting = {
+                "seckey": seckey,
+                "pubkey": pubkey,
+                "screen": screen
+            }
         sign = Ed25519.sign(message=self.user_code, secret_key=seckey, public_key=pubkey)
         data = {
             "screen_name": "@" + screen,
@@ -214,15 +239,17 @@ class WebSocketClient:
 
     def on_error(self, ws, error):
         logging.error("error: %s" % error)
-        self.ws.close()
+        self.ws = None
+        self.user_code = None
+        self.result = dict()
+        self.level = 0
 
     def on_close(self, ws):
-        self.ws = None
         logging.info("close: %s" % ws)
-        # self.ws.close()
-        # time.sleep(5)
-        # logging.info("try reconnect")
-        # self.create_connect()
+        self.ws = None
+        self.user_code = None
+        self.result = dict()
+        self.level = 0
 
     def on_open(self, ws):
         self.ws = ws
