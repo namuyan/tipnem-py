@@ -15,7 +15,7 @@ Tipnemを扱うライブラリ
 2017/11/07
 """
 
-version = "2.0"
+version = "2.1"
 author = "namuyan"
 
 
@@ -67,10 +67,12 @@ class WebSocketClient:
         return False
 
     def login_by_pin_user(self, level=2):
-        while True:
+        count = 0
+        while count < 20:
+            count += 1
             print()
             ok, result = self.request(command="user/upgrade", data={"require_level": level})
-            if not ok:
+            if not ok and result != 'pincode has been already created.':
                 print("# failed upgrade request: ", result)
                 continue
 
@@ -89,9 +91,12 @@ class WebSocketClient:
             print("# upgrade OK!")
             self.level = level
             return
+        raise Exception("failed upgrade user")
 
     def login_by_pin_guest(self, screen):
-        while True:
+        count = 0
+        while count < 20:
+            count += 1
             print()
             data = {"screen_name": "@" + screen}
             ok, result = self.request(command="user/offer", data=data)
@@ -114,6 +119,7 @@ class WebSocketClient:
             print("# login OK!")
             self.level = 1
             return
+        raise Exception("failed login user")
 
     def start(self, name="tipnem"):
         threading.Thread(
@@ -141,7 +147,7 @@ class WebSocketClient:
         uuid = random.randint(1, 2147483647)
         message = {
            "command": command,
-           "data": data,
+           "data": {"dummy": "data"} if data is None else data,
            "uuid": uuid
         }
         logging.debug("id:%d,msg:%s" % (uuid, message))
@@ -211,6 +217,7 @@ class WebSocketClient:
         self.ws.close()
 
     def on_close(self, ws):
+        self.ws = None
         logging.info("close: %s" % ws)
         # self.ws.close()
         # time.sleep(5)
